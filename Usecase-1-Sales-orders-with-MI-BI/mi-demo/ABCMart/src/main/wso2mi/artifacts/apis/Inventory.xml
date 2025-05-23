@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/inventory" name="Inventory" xmlns="http://ws.apache.org/ns/synapse">
+    <resource methods="POST" uri-template="/reservations">
+        <inSequence>
+            <variable name="orderId" type="STRING" expression="${payload.order}"/>
+            <variable name="productId" type="STRING" expression="${payload.product}"/>
+            <variable name="quantity" type="INTEGER" expression="${payload.amount}"/>
+            <log category="INFO" logMessageID="false" logFullPayload="false">
+                <message>${vars.orderId}</message>
+            </log>
+            <payloadFactory media-type="json" template-type="default">
+                <format>{
+                    "orderId": "${vars.orderId}",
+                    "productId": "${vars.productId}",
+                    "quantity": ${vars.quantity}
+                    }</format>
+            </payloadFactory>
+            <call>
+                <endpoint key="InventoryEp"/>
+            </call>
+            <filter xpath="${payload.status == &quot;ALLOCATED&quot;}">
+                <then>
+                    <payloadFactory media-type="json" template-type="default">
+                        <format>{"orderId": "${vars.orderId}","status": "success"}</format>
+                    </payloadFactory>
+                    <respond/>
+                </then>
+                <else>
+                    <call>
+                        <endpoint key="PurchasingEp"/>
+                    </call>
+                </else>
+            </filter>
+        </inSequence>
+        <faultSequence>
+        </faultSequence>
+    </resource>
+</api>
